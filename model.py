@@ -55,7 +55,6 @@ class RWKV_TimeMix_x051a(nn.Module):
             decay_speed = torch.ones(self.n_head)
             for h in range(self.n_head):
                 decay_speed[h] = -6 + 5 * (h / (self.n_head - 1)) ** (0.7 + 1.3 * ratio_0_to_1)
-            self.time_decay = nn.Parameter(decay_speed.unsqueeze(-1))
 
             tmp = torch.zeros(self.n_head)
             for h in range(self.n_head):
