@@ -99,27 +99,9 @@ class RWKV_TimeMix_x051a(nn.Module):
         v = self.value(xv).view(B, T, H, N).transpose(1, 2) # value
         g = F.silu(self.gate(xg)) # extra gate
 
-        w = torch.exp(-torch.exp(self.time_decay.float())) # time_decay
         u = self.time_faaaa.float() # time_first
 
-        ws = w.pow(Q).view(1, H, 1, 1)
-
         ind = torch.arange(Q-1, -1, -1, device=r.device).unsqueeze(0).repeat(H, 1)
-        w = w.repeat(1, Q).pow(ind)
-
-        wk = w.view(1, H, 1, Q)
-        wb = wk.transpose(-2, -1).flip(2)
-
-        w = torch.cat([w[:, 1:], u], dim=1)
-        w = F.pad(w, (0, Q))
-        w = torch.tile(w, [Q])
-        w = w[:, :-Q].view(-1, Q, 2*Q - 1)
-        w = w[:, :, Q-1:].view(1, H, Q, Q)
-
-        w = w.to(dtype=r.dtype) # the decay matrix
-        wk = wk.to(dtype=r.dtype)
-        wb = wb.to(dtype=r.dtype)
-        ws = ws.to(dtype=r.dtype)
 
         state = torch.zeros(B, H, N, N, device=r.device, dtype=r.dtype) # state
         y = torch.empty(B, H, T, N, device=r.device, dtype=r.dtype) # output
@@ -128,8 +110,8 @@ class RWKV_TimeMix_x051a(nn.Module):
             rr = r[:, :, i*Q:i*Q+Q, :]
             kk = k[:, :, :, i*Q:i*Q+Q]
             vv = v[:, :, i*Q:i*Q+Q, :]
-            y[:, :, i*Q:i*Q+Q, :] = ((rr @ kk) * w) @ vv + (rr @ state) * wb
-            state = ws * state + (kk * wk) @ vv
+            y[:, :, i*Q:i*Q+Q, :] = (rr @ kk) @ vv + (rr @ state)
+            state = (kk) @ vv
 
         y = y.transpose(1, 2).contiguous().view(B * T, C)
         y = self.ln_x(y).view(B, T, C) * g
