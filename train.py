@@ -201,7 +201,7 @@ optimizer = model.configure_optimizers(weight_decay, learning_rate, (beta1, beta
 if init_from == 'resume':
     optimizer.load_state_dict(checkpoint['optimizer'])
 checkpoint = None # free up memory
-
+print(device, device_type, ctx)
 # compile the model
 if compile:
     print("compiling the model... (takes a ~minute)")
